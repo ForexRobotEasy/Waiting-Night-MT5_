@@ -1,0 +1,62 @@
+mql5
+//+------------------------------------------------------------------+
+//|                                                   Waiting Night |
+//|                                    Copyright 2021, Forex Robot Easy Team |
+//|                                                http://forexroboteasy.com |
+//+------------------------------------------------------------------+
+#include <Trade/Trade.mqh>
+#include <Trade/PositionInfo.mqh>
+
+// List of currency pairs to trade during quiet hours
+string currencyPairs[] = {'USDCAD', 'USDCHF', 'USDJPY', 'EURCAD', 'EURCHF', 'EURUSD', 'EURGBP', 'EURAUD', 'GBPUSD', 'CHFJPY', 'AUDCAD'};
+
+// User-friendly settings
+input int riskLevel = 1;  // Risk level adjustment feature
+input int takeProfit = 50;  // Take profit in pips
+input int stopLoss = 20;  // Stop loss in pips
+input int maxSpread = 2;  // Maximum allowed spread in points
+input int slippage = 3;  // Maximum allowed slippage in points
+
+// Trading function for executing trades during quiet hours
+void TradeDuringQuietHours()
+{
+   int totalPairs = ArraySize(currencyPairs);
+   for (int i = 0; i < totalPairs; i++)
+   {
+      double ask = SymbolInfoDouble(currencyPairs[i], SYMBOL_ASK);
+      double bid = SymbolInfoDouble(currencyPairs[i], SYMBOL_BID);
+      double spread = ask - bid;
+      
+      if (spread <= maxSpread)
+      {
+         int ticket = Trade.BuyStop(currencyPairs[i], ask + stopLoss * _Point, ask + takeProfit * _Point, slippage);
+         if (ticket > 0)
+         {
+            Print('Buy stop order placed for ', currencyPairs[i]);
+         }
+         
+         ticket = Trade.SellStop(currencyPairs[i], bid - stopLoss * _Point, bid - takeProfit * _Point, slippage);
+         if (ticket > 0)
+         {
+            Print('Sell stop order placed for ', currencyPairs[i]);
+         }
+      }
+   }
+}
+
+// Entry point of the Expert Advisor
+void OnTick()
+{
+   // Check if current time is within quiet hours (e.g., 00:00 - 06:00)
+   datetime currentTime = TimeLocal();
+   datetime quietHourStart = StrToTime('00:00');
+   datetime quietHourEnd = StrToTime('06:00');
+   
+   if (currentTime >= quietHourStart && currentTime <= quietHourEnd)
+   {
+      // Execute trades during quiet hours
+      TradeDuringQuietHours();
+   }
+}
+
+//+------------------------------------------------------------------+
